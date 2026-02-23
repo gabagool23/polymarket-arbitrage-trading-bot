@@ -1,0 +1,221 @@
+# Polymarket Arbitrage Bot Configuration
+# All values can be overridden via environment variables with POLY_ prefix
+# Example: POLY_MODE=real overrides [general].mode
+
+[general]
+# Operating mode: "test" (simulation) or "real" (live trading)
+mode = "test"
+
+# Polygon RPC URL (use Alchemy/QuickNode for lower latency in production)
+rpc_url = "https://polygon-rpc.com"
+
+# Polymarket API endpoints
+clob_api_url = "https://clob.polymarket.com"
+gamma_api_url = "https://gamma-api.polymarket.com"
+
+# WebSocket endpoints
+clob_ws_url = "wss://ws-subscriptions-clob.polymarket.com/ws/market"
+
+[wallet]
+# Private key loaded from POLY_PRIVATE_KEY env var (never store in config!)
+# chain_id for Polygon mainnet
+chain_id = 137
+
+[trading]
+# Market IDs to monitor (15-min BTC/ETH/SOL Up/Down markets)
+# NOTE: The bot uses DYNAMIC DISCOVERY from Gamma API based on '15-min' pattern.
+# The list below is IGNORED/DEPRECATED but kept for reference structure.
+market_slugs = [] # Auto-filled by bot logic
+
+# Shares per trade (configurable: $1 = ~2 shares at $0.50, $100 = ~200 shares)
+# UPDATED: For cicil mode, this is MAX shares per complete hedge (will cicil 1 at a time)
+per_trade_shares = 3.0
+
+# Minimum value to trigger trade (if Yes_price + No_price < this)
+# UPDATED from 0.92 to 0.98 - 2% edge is realistic and triggers more often
+# 0.98 = 2% edge (achievable in normal markets)
+# Dynamic: Lowered to 0.985-0.99 when liquidation cascade detected
+min_profit_threshold = 0.98
+
+# Minimum sum of Yes+No prices to consider valid (anti-stale data protection)
+# 0.90 = Safe default (reject if sum < 0.90)
+min_price_sum = 0.90
+
+# Dump trigger: % price drop to initiate Leg 1 buy
+dump_trigger_pct = 0.15
+
+# Spot move trigger: % change in Binance spot price for latency arbitrage
+spot_move_trigger_pct = 0.5
+
+# Entry window: only trade within first N minutes of round
+# UPDATED: 10 minutes gives enough time for fills before market resolves
+entry_window_min = 10
+
+# Max timeout for completing hedge (Leg 2) in seconds
+# UPDATED: 120s to allow maker orders to fill
+max_legs_timeout_sec = 120
+
+# Maximum daily risk as % of total capital
+max_daily_risk_pct = 20.0
+
+# Order book depth to consider for pricing
+orderbook_depth = 5
+
+# Slippage tolerance for limit orders (basis points)
+# UPDATED: 200 bps (2 cents) for maker orders - stay on book
+slippage_bps = 200
+
+# Retry attempts for failed orders
+max_order_retries = 3
+
+# Minimum edge required to place trade (in cents)
+min_edge_cents = 1
+
+# === Leg 2 Pricing Strategy ===
+# Use MAKER price for Leg2 instead of $0.99 taker
+# Leg2 price = opposite_side_price + leg2_price_offset
+# This earns rebates instead of paying taker fees
+leg2_price_offset = 0.02
+
+# === Incremental Hedging (Cicil) ===
+# Enable incremental 1-share-at-a-time hedging
+enable_cicil_mode = true
+
+# Shares per cicil (usually 1)
+cicil_share_size = 1.0
+
+# Max cicil iterations before stopping
+max_cicil_count = 3
+
+# Seconds to wait between cicils for momentum confirmation
+cicil_wait_seconds = 15
+
+# === Balance Safety ===
+# Minimum USDC balance to maintain (don't trade below this)
+min_balance_usd = 10.0
+
+# Require balance check before each trade
+require_balance_check = true
+
+[binance_integration]
+# Enable Binance price streaming for latency arbitrage
+enabled = true
+
+# Symbols to stream (lowercase, no separators)
+symbols = ["btcusdt", "ethusdt", "solusdt"]
+
+# Window for detecting price moves (seconds)
+move_window_sec = 5
+
+# Binance WebSocket URL (public, no API key needed)
+ws_url = "wss://stream.binance.com:9443"
+
+# Reconnect settings
+reconnect_delay_ms = 1000
+max_reconnect_attempts = 10
+
+# === NEW: Bybit Liquidation Integration ===
+[bybit_liquidation]
+# Enable Bybit liquidation stream for cascade detection
+enabled = true
+
+# Symbols to monitor for liquidations (uppercase)
+symbols = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
+
+# Rolling window for cascade detection (seconds)
+cascade_window_sec = 10
+
+# Minimum total liquidated value to trigger cascade alert (USD)
+# $1M = significant cascade, $500k = moderate
+cascade_threshold_usd = 1000000.0
+
+# Dynamic threshold adjustment when cascade detected
+# If cascade detected, use this tighter threshold instead of min_profit_threshold
+cascade_profit_threshold = 0.985
+
+# Enable directional trading based on cascade (not just hedging)
+enable_directional_trades = false
+
+[risk_management]
+# Maximum position size per market (in shares)
+# With $99 capital, max ~10 shares per market ($5-10 exposure with cicil)
+max_position_per_market = 10.0
+
+# Maximum total exposure across all markets
+# ~30% of $99 capital = ~$30 max across all markets
+max_total_exposure = 30.0
+
+# Stop loss threshold (% of position value)
+stop_loss_pct = 10.0
+
+# Cool-down period after loss (seconds)
+loss_cooldown_sec = 60
+
+# Maximum consecutive losses before pause
+max_consecutive_losses = 3
+
+# === REAL TRADING SAFETY LIMITS ===
+
+# Maximum trades per day (hard limit)
+max_trades_per_day = 10
+
+# Circuit breaker: Stop all trading if daily loss exceeds this amount (in dollars)
+# Negative value, e.g., -20 means stop if we lose $20 (from $99 capital)
+circuit_breaker_loss = -20.0
+
+[logging]
+# Log level: trace, debug, info, warn, error
+log_level = "info"
+
+# PNL log file path
+pnl_file = "pnl.log"
+
+# Trade log file path
+trade_file = "trades.log"
+
+# Enable JSON structured logging
+json_logging = false
+
+# Log rotation: max file size in MB
+max_log_size_mb = 100
+
+[maker_rebates]
+# Enable maker rebates optimization (Jan 2026 program)
+# Earns rebates from taker fees when your limit orders are filled
+enabled = true
+
+# Minimum estimated rebate % to prioritize entry
+# If expected rebate > this threshold, increases trade priority
+rebate_estimate_threshold = 0.01
+
+# Track and log daily rebate estimates
+track_daily_rebates = true
+
+# Rebates log file
+rebates_file = "rebates.log"
+
+# Market making mode (optional, low-volatility windows)
+# Posts bid/ask around midpoint to earn rebates
+# Only activates when hedging edge is low
+enable_market_making = false
+
+# Spread for market making (basis points from midpoint)
+market_making_spread_bps = 100
+
+# Maximum position for market making (shares per side)
+market_making_max_position = 50.0
+
+# Quote refresh interval (milliseconds)
+quote_refresh_ms = 5000
+
+# === NEW: Fill Monitoring ===
+[fill_monitor]
+# Interval for polling /fills endpoint (seconds)
+# Reduced from every market update to dedicated interval
+poll_interval_sec = 5
+
+# Enable auto-rebalance on partial fills
+enable_auto_rebalance = true
+
+# Maximum imbalance (shares) before auto-selling excess
+max_imbalance_shares = 2.0
