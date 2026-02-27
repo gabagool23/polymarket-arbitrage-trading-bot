@@ -41,8 +41,8 @@ For a **beginner-friendly explanation** of how the strategies work and how to us
 
 ```bash
 # Clone this repo
-git clone https://github.com/baker42757/Polymarket-market-maker-bot.git
-cd Polymarket-market-maker-bot
+git clone https://github.com/baker42757/polymarket-arbitrage-trading-bot.git
+cd polymarket-arbitrage-trading-bot
 
 # Build release binary
 cargo build --release
@@ -78,7 +78,7 @@ Full list and explanations: **[docs/03-configuration.md](docs/03-configuration.m
 ## Project Structure
 
 ```
-Polymarket-market-maker-bot/
+polymarket-arbitrage-trading-bot/
 ├── src/
 │   ├── main.rs           # Entry point, CLI, event loop
 │   ├── config/           # Configuration loading
